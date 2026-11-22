@@ -1,21 +1,24 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Song } from "../core/model";
 import { importFile, ACCEPTED } from "../core/importFile";
 import { parseAsciiTab } from "../core/importTab";
+import { combineSongs } from "../core/smart";
 import { EXAMPLE_TAB } from "../core/example";
-import { forgetLastSong, loadLastSong } from "../lib/settings";
+import { deleteSong, listSongs, type LibraryEntry } from "../lib/library";
 import { DemoStage } from "./DemoStage";
+import { SongSearch } from "./SongSearch";
 import { Segmented } from "./ui";
+import { IOS } from "../lib/platform";
 import { UploadIcon } from "./Icons";
 
 const FEATURES: [string, string][] = [
-  ["Reparto a dos manos", "Melodía y voz a la derecha, bajo a la izquierda, batería fuera. Cada pista cae en el registro de su mano."],
+  ["Melodía automática", "Junta sola la voz y las guitarras: canta cuando hay letra y toma el riff o el solo cuando no. Con guitarras gemelas, las dos."],
   ["Suena a piano de verdad", "Un piano de cola sampleado con tres capas de intensidad y reverberación de sala."],
   ["Practica con tu teclado", "Conéctalo por USB: aciertos y fallos en tiempo real, modo «esperarme» y bucles que suben el tempo solos."],
   ["Llévalo a MuseScore", "Partitura con armadura estimada, imprimible, y exportación a MIDI y MusicXML."],
 ];
 
-export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
+export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; onOpen: (e: LibraryEntry) => void }) {
   const [mode, setMode] = useState<"file" | "paste">("file");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -23,15 +26,21 @@ export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
   const [tab, setTab] = useState("");
   const [charsPerBeat, setCharsPerBeat] = useState(4);
   const [bpm, setBpm] = useState(120);
-  const [last, setLast] = useState(() => loadLastSong());
+  const [library, setLibrary] = useState<LibraryEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const load = async (file: File | undefined) => {
-    if (!file) return;
+  useEffect(() => {
+    void listSongs().then(setLibrary);
+  }, []);
+
+  /** Varios archivos a la vez (p. ej. una tab por guitarra) se juntan en una sola canción. */
+  const load = async (files: FileList | File[] | null | undefined) => {
+    const list = [...(files ?? [])];
+    if (!list.length) return;
     setBusy(true);
     setError("");
     try {
-      onSong(await importFile(file));
+      onSong(combineSongs(await Promise.all(list.map(importFile))));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -66,10 +75,10 @@ export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
             Sube una canción en Guitar Pro, MusicXML o MIDI, o pega una tablatura. Riffkeys reparte las guitarras, el bajo y la voz entre tus dos manos, la toca con un
             piano de cola y te deja practicarla nota por nota.
           </p>
-          <ol className="mt-8 grid max-w-lg gap-3">
+          <ol className="mt-8 hidden max-w-lg gap-3 sm:grid">
             {[
-              ["Carga la canción", "Guitar Pro, MusicXML, MIDI o texto. Guitar Pro es lo más preciso: trae el ritmo exacto."],
-              ["Elige qué toca cada mano", "Riffkeys sugiere un reparto y ajusta el registro y la dificultad."],
+              ["Búscala", "Escribe el nombre y Riffkeys te lleva directo a sus archivos Guitar Pro."],
+              ["Súbela tal cual", "Trae todas las guitarras, el bajo y la voz: la melodía y el bajo se arman solos. Igual puedes cambiar qué toca cada mano."],
               ["Practica o exporta", "Con tu teclado MIDI, en bucle y a tu velocidad, o ábrelo en MuseScore."],
             ].map(([t, d], i) => (
               <li key={t} className="flex gap-4">
@@ -84,32 +93,8 @@ export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
         </section>
 
         <section className="rounded-2xl border border-line bg-surface p-4 shadow-2xl shadow-black/30 sm:p-6" aria-label="Cargar canción">
-          {last && (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-line bg-stage p-3">
-              <div className="min-w-0">
-                <p className="text-xs text-muted">Seguir con</p>
-                <p className="truncate font-semibold">{last.title}</p>
-              </div>
-              <div className="flex shrink-0 gap-1">
-                <button type="button" className="btn-primary h-9" onClick={() => onSong(last)}>
-                  Abrir
-                </button>
-                <button
-                  type="button"
-                  className="btn-quiet h-9 w-9 px-0"
-                  aria-label="Olvidar esta canción"
-                  title="Olvidar"
-                  onClick={() => {
-                    forgetLastSong();
-                    setLast(null);
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          )}
-
+          <SongSearch />
+          <div className="mt-4" />
           <Segmented
             label="Forma de cargar"
             value={mode}
@@ -133,7 +118,7 @@ export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
               onDrop={(e) => {
                 e.preventDefault();
                 setDragging(false);
-                void load(e.dataTransfer.files[0]);
+                void load(e.dataTransfer.files);
               }}
               className={`mt-4 flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-14 text-center transition-colors ${dragging ? "border-bone bg-raised" : "border-line"}`}
             >
@@ -142,10 +127,22 @@ export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
               </span>
               <p className="font-display text-3xl font-black uppercase tracking-wide">Arrastra tu archivo aquí</p>
               <p className="mt-2 text-sm text-muted">.gp · .gp5 · .gpx · .musicxml · .mxl · .mid · .txt</p>
+              <p className="mt-1 text-xs text-muted">¿Tienes cada guitarra en un archivo distinto? Súbelos todos juntos.</p>
               <button type="button" className="btn-primary mt-6" onClick={() => inputRef.current?.click()} disabled={busy}>
-                {busy ? "Leyendo…" : "Elegir archivo"}
+                {busy ? "Leyendo…" : "Elegir archivos"}
               </button>
-              <input ref={inputRef} type="file" accept={ACCEPTED} className="sr-only" onChange={(e) => void load(e.target.files?.[0])} aria-label="Elegir archivo de canción" />
+              <input
+                ref={inputRef}
+                type="file"
+                multiple
+                accept={IOS ? undefined : ACCEPTED}
+                className="sr-only"
+                onChange={(e) => {
+                  void load(e.target.files);
+                  e.target.value = "";
+                }}
+                aria-label="Elegir archivos de canción"
+              />
             </div>
           ) : (
             <div className="mt-4 space-y-3">
@@ -209,6 +206,17 @@ export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
         </section>
       </div>
 
+      {library.length > 0 && (
+        <Library
+          entries={library}
+          onOpen={onOpen}
+          onDelete={(id) => {
+            void deleteSong(id);
+            setLibrary((l) => l.filter((e) => e.id !== id));
+          }}
+        />
+      )}
+
       <section className="wrap pb-16" aria-label="Así se ve">
         <div className="h-56 overflow-hidden rounded-2xl border border-line sm:h-72" aria-hidden="true">
           <DemoStage />
@@ -223,5 +231,59 @@ export function ImportScreen({ onSong }: { onSong: (s: Song) => void }) {
         </ul>
       </section>
     </>
+  );
+}
+
+const ago = (t: number) => {
+  const d = Math.floor((Date.now() - t) / 86400000);
+  return d <= 0 ? "hoy" : d === 1 ? "ayer" : d < 30 ? `hace ${d} días` : new Date(t).toLocaleDateString("es");
+};
+
+function Library({ entries, onOpen, onDelete }: { entries: LibraryEntry[]; onOpen: (e: LibraryEntry) => void; onDelete: (id: string) => void }) {
+  const [filter, setFilter] = useState("");
+  const [all, setAll] = useState(false);
+  const f = filter.trim().toLowerCase();
+  const shown = entries.filter((e) => !f || `${e.title} ${e.artist}`.toLowerCase().includes(f));
+  const visible = all || f ? shown : shown.slice(0, 6);
+  return (
+    <section className="wrap pb-12" aria-labelledby="mis-canciones">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h2 id="mis-canciones" className="font-display text-4xl font-black uppercase tracking-wide">
+          Mis canciones
+        </h2>
+        {entries.length > 6 && (
+          <input type="search" className="field w-56" placeholder="Filtrar" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filtrar mis canciones" />
+        )}
+      </div>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {visible.map((e) => (
+          <li key={e.id} className="group relative rounded-xl border border-line bg-surface transition-colors hover:border-muted/60">
+            <button type="button" className="block w-full p-4 pr-12 text-left" onClick={() => onOpen(e)}>
+              <p className="truncate font-semibold">{e.title}</p>
+              <p className="truncate text-sm text-muted">
+                {e.artist ? `${e.artist} · ` : ""}
+                {e.song.tracks.length} pistas · {ago(e.opened)}
+              </p>
+            </button>
+            <button
+              type="button"
+              className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-lg text-muted opacity-70 hover:bg-raised hover:text-ink group-hover:opacity-100"
+              aria-label={`Borrar «${e.title}» de mis canciones`}
+              title="Borrar"
+              onClick={() => {
+                if (confirm(`¿Borrar «${e.title}» de tus canciones?`)) onDelete(e.id);
+              }}
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      {!all && !f && shown.length > 6 && (
+        <button type="button" className="btn-quiet mt-3" onClick={() => setAll(true)}>
+          Ver todas ({shown.length})
+        </button>
+      )}
+    </section>
   );
 }

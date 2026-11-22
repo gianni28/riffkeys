@@ -9,6 +9,10 @@ Nació de una necesidad concreta: tocar metal en piano implica pasar a mano tabs
 - **Importa** Guitar Pro (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`), MusicXML (`.xml`, `.musicxml`, `.mxl`), MIDI (`.mid`) y tablaturas en texto pegadas o en `.txt`.
 - **Sugiere un reparto**: voz y melodías a la mano derecha, bajo a la izquierda, batería fuera. Con una sola pista de guitarra, «Dividir» manda los graves a la izquierda y el resto a la derecha.
 - **Adapta al piano**: mueve cada pista de octava para que caiga en el registro de su mano, une notas dobladas y reduce acordes a lo que una mano alcanza (número de notas y abertura configurables).
+- **Buscador**: escribes la canción y te abre sus archivos Guitar Pro en Ultimate Guitar (o la ves en Songsterr).
+- **Melodía automática**: una pista virtual que junta, compás por compás, lo que se oye arriba: la voz cuando hay letra y la guitarra que lleva la melodía en intros, puentes y solos. Si dos guitarras van armonizadas (Iron Maiden), toma las dos; las rítmicas con power chords quedan fuera. Va a la mano derecha y el bajo a la izquierda sin tocar nada.
+- **Juntar partes**: sube varios archivos a la vez (una tab por guitarra) o añade otra parte a la canción abierta, pegando una tab o con un archivo, desde el compás que quieras.
+- **Mis canciones**: todo lo que subes queda guardado en el navegador con el reparto y la transposición que dejaste.
 - **Opciones para metal**: octavas en la mano izquierda (más peso, como en los covers) y «simplificar ritmos rápidos», que pasa los chugs en semicorcheas a corcheas.
 - **Suena a piano de verdad**: piano de cola sampleado (Salamander Grand Piano) con tres capas de intensidad, reverberación de sala y paneo suave por registro. Mientras se descargan las muestras suena un sintetizador.
 - **Notas cayendo** en canvas a 60 fps: líneas de compás numeradas, teclas que se hunden, chispas al sonar, zoom y pantalla completa.
@@ -21,7 +25,7 @@ Nació de una necesidad concreta: tocar metal en piano implica pasar a mano tabs
 - **Partitura** para piano (pentagramas de Sol y Fa) con la tonalidad estimada automáticamente; se puede imprimir o guardar en PDF.
 - **Teclado MIDI** (Web MIDI, en Chrome y Edge): tus teclas se iluminan, el pedal de sustain funciona y, si tu teclado no tiene parlantes, puede sonar en la app.
 - **Exporta** a MIDI (dos pistas: mano derecha e izquierda) y MusicXML.
-- **Recuerda** tus ajustes y la última canción abierta.
+- **Recuerda** tus ajustes.
 - **Atajos**: espacio, ← → (compás), [ ] (velocidad), L (bucle), M (metrónomo), N (nombres), F (pantalla completa).
 
 Todo corre en el navegador: los archivos nunca salen del dispositivo.

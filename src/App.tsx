@@ -1,16 +1,27 @@
 import { useState } from "react";
 import type { Song } from "./core/model";
+import { entryFor, saveSong, type LibraryEntry } from "./lib/library";
 import { ImportScreen } from "./components/ImportScreen";
 import { Workspace } from "./components/Workspace";
 import { GithubIcon } from "./components/Icons";
 
 export default function App() {
-  const [song, setSong] = useState<Song | null>(null);
+  const [entry, setEntry] = useState<LibraryEntry | null>(null);
+  const openSong = async (song: Song) => {
+    const e = await entryFor(song);
+    void saveSong(e);
+    setEntry(e);
+    window.scrollTo(0, 0);
+  };
+  const openEntry = (e: LibraryEntry) => {
+    setEntry({ ...e, opened: Date.now() });
+    window.scrollTo(0, 0);
+  };
   return (
     <div className="flex min-h-screen flex-col">
-      <Header onHome={song ? () => setSong(null) : undefined} />
+      <Header onHome={entry ? () => setEntry(null) : undefined} />
       <main id="contenido" className="flex-1">
-        {song ? <Workspace key={`${song.title}-${song.tracks.length}`} song={song} onClose={() => setSong(null)} /> : <ImportScreen onSong={setSong} />}
+        {entry ? <Workspace key={entry.id} entry={entry} onClose={() => setEntry(null)} /> : <ImportScreen onSong={(s) => void openSong(s)} onOpen={openEntry} />}
       </main>
       <footer className="border-t border-line">
         <div className="wrap flex flex-col gap-2 py-6 text-sm text-muted sm:flex-row sm:justify-between">
