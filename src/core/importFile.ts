@@ -8,13 +8,13 @@ export async function importFile(file: File, onProgress?: (p: number, stage: str
   const bytes = new Uint8Array(await file.arrayBuffer());
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
 
-  // Una grabación (audio o video): se escucha y se transcribe.
-  if (isAudioFile(file) || looksLikeAudio(bytes)) return transcribe(file, onProgress ?? (() => undefined));
-
-  if (ext === "mid" || ext === "midi" || isMidi(bytes)) {
+  if (ext === "mid" || ext === "midi" || ext === "kar" || isMidi(bytes)) {
     const { importMidi } = await import("./importMidi");
     return importMidi(bytes, name);
   }
+  // Una grabación (audio o video): se escucha y se transcribe.
+  if (isAudioFile(file) || looksLikeAudio(bytes)) return transcribe(file, onProgress ?? (() => undefined));
+
   if (ext === "txt") return parseAsciiTab(new TextDecoder().decode(bytes), { title: name.replace(/\.[^.]+$/, "") }).song;
   // alphaTab pesa ~1 MB: solo se descarga cuando alguien sube un Guitar Pro o MusicXML.
   const { importWithAlphaTab } = await import("./importAlphaTab");

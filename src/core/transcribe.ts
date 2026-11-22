@@ -5,8 +5,12 @@ const RATE = 22050; // lo que espera Basic Pitch
 export const AUDIO_EXT = ["mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "flac", "webm", "mp4", "mov", "m4v", "3gp"];
 export const MAX_SECONDS = 8 * 60;
 
+/** Formatos de partitura: aunque el navegador diga «audio/midi», no son grabaciones. */
+const SCORE_EXT = ["mid", "midi", "kar", "gp", "gp3", "gp4", "gp5", "gpx", "xml", "musicxml", "mxl", "txt"];
+
 export function isAudioFile(file: File) {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (SCORE_EXT.includes(ext) || /midi|mid$/i.test(file.type)) return false;
   return AUDIO_EXT.includes(ext) || file.type.startsWith("audio/") || file.type.startsWith("video/");
 }
 
