@@ -52,3 +52,29 @@ describe("reconocer audio por el contenido", () => {
     expect(looksLikeAudio(bytes("e|---0---3---|"))).toBe(false);
   });
 });
+
+import { isAudioFile } from "./transcribe";
+import { importFile } from "./importFile";
+import { toMidi } from "./exportMidi";
+describe("no confundir partituras con audio", () => {
+  it("un MIDI con tipo audio/midi no es una grabación", () => {
+    expect(isAudioFile(new File([], "cancion.mid", { type: "audio/midi" }))).toBe(false);
+    expect(isAudioFile(new File([], "cancion", { type: "audio/x-midi" }))).toBe(false);
+    expect(isAudioFile(new File([], "cancion.mp3", { type: "audio/mpeg" }))).toBe(true);
+    expect(isAudioFile(new File([], "video.mp4", { type: "video/mp4" }))).toBe(true);
+  });
+  it("importa un MIDI aunque el navegador lo marque como audio", async () => {
+    const midi = toMidi({
+      title: "Prueba",
+      artist: "",
+      tempos: [{ beat: 0, bpm: 120 }],
+      timeSignature: [4, 4],
+      right: [{ pitch: 72, start: 0, dur: 1, vel: 90 }],
+      left: [{ pitch: 48, start: 0, dur: 1, vel: 90 }],
+      length: 1,
+    });
+    const song = await importFile(new File([new Uint8Array(midi)], "wicker man.mid", { type: "audio/midi" }));
+    expect(song.source).toBe("midi");
+    expect(song.tracks.length).toBeGreaterThan(0);
+  });
+});
