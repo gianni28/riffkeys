@@ -1,6 +1,3 @@
-/** En iPhone, filtrar por extensión deja grises los .gp (iOS no conoce el tipo): ahí se acepta todo. */
-export const IOS = typeof navigator !== "undefined" && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
-
 /** Enlaces de búsqueda: tabs gratis en texto para copiar y pegar en Riffkeys. */
 export function searchLinks(q: string) {
   const enc = encodeURIComponent(q.trim());

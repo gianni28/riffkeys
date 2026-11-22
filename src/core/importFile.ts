@@ -1,13 +1,15 @@
 import type { Song } from "./model";
 import { parseAsciiTab } from "./importTab";
-
-export const ACCEPTED = ".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl,.mid,.midi,.txt";
+import { isAudioFile, looksLikeAudio, transcribe } from "./transcribe";
 
 /** Elige el importador según la extensión y, si hace falta, el contenido. */
-export async function importFile(file: File): Promise<Song> {
+export async function importFile(file: File, onProgress?: (p: number, stage: string) => void): Promise<Song> {
   const name = file.name;
   const bytes = new Uint8Array(await file.arrayBuffer());
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
+
+  // Una grabación (audio o video): se escucha y se transcribe.
+  if (isAudioFile(file) || looksLikeAudio(bytes)) return transcribe(file, onProgress ?? (() => undefined));
 
   if (ext === "mid" || ext === "midi" || isMidi(bytes)) {
     const { importMidi } = await import("./importMidi");
@@ -20,7 +22,7 @@ export async function importFile(file: File): Promise<Song> {
     return importWithAlphaTab(bytes, name);
   } catch {
     throw new Error(
-      `No pude leer «${name}». Riffkeys acepta Guitar Pro (.gp, .gp5, .gpx), MusicXML (.xml, .musicxml, .mxl), MIDI (.mid) y tablaturas en texto.`,
+      `No pude leer «${name}». Riffkeys acepta Guitar Pro (.gp, .gp5, .gpx), MusicXML (.xml, .musicxml, .mxl), MIDI (.mid), tablaturas en texto y audio o video (MP3, M4A, WAV, MP4…).`,
     );
   }
 }
