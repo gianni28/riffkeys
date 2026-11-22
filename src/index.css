@@ -57,3 +57,45 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+@layer components {
+  kbd {
+    @apply rounded border border-line bg-raised px-1.5 py-px font-sans text-[11px] font-semibold text-ink;
+  }
+  .zoom-btn {
+    @apply grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-stage/70 text-lg font-semibold leading-none text-muted backdrop-blur transition-colors hover:text-ink;
+  }
+  /* Barra de posición: la pista la dibuja el contenedor, aquí solo el control. */
+  .seek {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 2rem;
+    cursor: pointer;
+  }
+  .seek::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 2rem;
+  }
+  .seek::-moz-range-track {
+    background: transparent;
+  }
+  .seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 14px;
+    width: 14px;
+    margin-top: calc(1rem - 7px);
+    border-radius: 9999px;
+    background: #f3f0e8;
+    box-shadow: 0 0 0 4px rgba(243, 240, 232, 0.15);
+  }
+  .seek::-moz-range-thumb {
+    height: 14px;
+    width: 14px;
+    border: 0;
+    border-radius: 9999px;
+    background: #f3f0e8;
+    box-shadow: 0 0 0 4px rgba(243, 240, 232, 0.15);
+  }
+}

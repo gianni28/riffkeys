@@ -14,6 +14,8 @@ export default {
         rh: "#6b93ff",
         lh: "#ff9a4d",
         danger: "#ff6b6b",
+        gold: "#ffd166",
+        hit: "#3ddc84",
       },
       fontFamily: {
         display: ['"Big Shoulders Display"', "Impact", '"Arial Narrow"', "sans-serif"],

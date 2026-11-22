@@ -2,6 +2,8 @@ import type { TempoChange } from "./model";
 
 /** Convierte negras a segundos respetando los cambios de tempo. */
 export function beatToSeconds(beat: number, tempos: TempoChange[], speed = 1): number {
+  // Antes del inicio (cuenta previa) el tiempo sigue al primer tempo.
+  if (beat < 0) return (beat * 60) / ((tempos[0]?.bpm ?? 120) * speed);
   let seconds = 0;
   for (let i = 0; i < tempos.length; i++) {
     const cur = tempos[i];
@@ -27,6 +29,30 @@ export function secondsToBeat(seconds: number, tempos: TempoChange[], speed = 1)
     elapsed += spanSeconds;
   }
   return 0;
+}
+
+/** Tempo vigente en una posición (en negras). */
+export function bpmAt(beat: number, tempos: TempoChange[]): number {
+  let bpm = tempos[0]?.bpm ?? 120;
+  for (const t of tempos) {
+    if (t.beat > beat + 1e-6) break;
+    bpm = t.bpm;
+  }
+  return bpm;
+}
+
+/** Duración de un compás en negras (6/8 → 3, 4/4 → 4). */
+export function barLength(timeSignature: [number, number]): number {
+  const [num, den] = timeSignature;
+  return num > 0 && den > 0 ? (num * 4) / den : 4;
+}
+
+/** Inicio (en negras) de cada compás hasta `length`. */
+export function barStarts(length: number, timeSignature: [number, number]): number[] {
+  const bar = barLength(timeSignature);
+  const out: number[] = [];
+  for (let b = 0; b < length + 1e-6; b += bar) out.push(b);
+  return out;
 }
 
 /** Deja la lista ordenada, sin duplicados y siempre con un tempo en el beat 0. */

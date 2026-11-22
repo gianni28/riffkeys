@@ -9,6 +9,10 @@ export interface ArrangeOptions {
   maxSpan?: number;
   /** En modo "split", las notas por debajo de esta altura (original) van a la izquierda. Por defecto Re3. */
   splitPoint?: number;
+  /** Dobla en octavas las notas sueltas de la mano izquierda (el sonido de los covers de metal en piano). */
+  leftOctaves?: boolean;
+  /** Convierte las repeticiones muy rápidas (chugs en semicorcheas) en corcheas. */
+  simplify?: boolean;
 }
 
 /** Registro cómodo de cada mano en un piano de 88 teclas. */
@@ -29,7 +33,7 @@ const EPS = 1e-4;
  * 3. Quita notas repetidas y reduce acordes imposibles de tocar.
  */
 export function arrange(song: Song, hands: Record<string, Hand>, opts: ArrangeOptions = {}): Arrangement {
-  const { transpose = 0, maxNotesPerHand = 4, maxSpan = 14, splitPoint = 50 } = opts;
+  const { transpose = 0, maxNotesPerHand = 4, maxSpan = 14, splitPoint = 50, leftOctaves = false, simplify = false } = opts;
   const out: Record<"right" | "left", Note[]> = { right: [], left: [] };
 
   const place = (notes: Note[], hand: "right" | "left") => {
@@ -56,8 +60,13 @@ export function arrange(song: Song, hands: Record<string, Hand>, opts: ArrangeOp
     } else place(track.notes, hand);
   }
 
-  const right = playable(dedupe(out.right), maxNotesPerHand, maxSpan, "right");
-  const left = playable(dedupe(out.left), maxNotesPerHand, maxSpan, "left");
+  let right = playable(dedupe(out.right), maxNotesPerHand, maxSpan, "right");
+  let left = playable(dedupe(out.left), maxNotesPerHand, maxSpan, "left");
+  if (simplify) {
+    right = simplifyRepeats(right);
+    left = simplifyRepeats(left);
+  }
+  if (leftOctaves) left = addOctaves(left);
   const length = Math.max(0, ...right.map((n) => n.start + n.dur), ...left.map((n) => n.start + n.dur));
 
   return { title: song.title, artist: song.artist, tempos: song.tempos, timeSignature: song.timeSignature, right, left, length };
@@ -116,6 +125,53 @@ export function playable(notes: Note[], maxNotes: number, maxSpan: number, hand:
     out.push(...chord);
   }
   return out;
+}
+
+/** Agrupa notas que empiezan juntas (acordes), en orden de inicio. */
+export function chords(notes: Note[]): Note[][] {
+  const sorted = [...notes].sort((a, b) => a.start - b.start || a.pitch - b.pitch);
+  const out: Note[][] = [];
+  for (const n of sorted) {
+    const last = out[out.length - 1];
+    if (last && Math.abs(last[0].start - n.start) < 0.02) last.push(n);
+    else out.push([n]);
+  }
+  return out;
+}
+
+const sameSet = (a: Note[], b: Note[]) => a.length === b.length && a.every((n, i) => n.pitch === b[i].pitch);
+
+/**
+ * Las guitarras de metal repiten la misma nota en semicorcheas (palm mute). En piano
+ * eso cansa mucho: cuando un acorde repite exactamente al anterior a menos de una
+ * corchea, se omite y el anterior se alarga.
+ */
+export function simplifyRepeats(notes: Note[], minGap = 0.5): Note[] {
+  const groups = chords(notes);
+  const kept: Note[][] = [];
+  for (const g of groups) {
+    const prev = kept[kept.length - 1];
+    if (prev && sameSet(prev, g) && g[0].start - prev[0].start < minGap - EPS) {
+      const end = Math.max(...g.map((n) => n.start + n.dur));
+      prev.forEach((n) => (n.dur = Math.max(n.dur, end - n.start)));
+      continue;
+    }
+    kept.push(g.map((n) => ({ ...n })));
+  }
+  return kept.flat();
+}
+
+/** Dobla una octava abajo cada nota suelta de la izquierda (arriba si se sale del piano). */
+export function addOctaves(notes: Note[]): Note[] {
+  const out: Note[] = [];
+  for (const g of chords(notes)) {
+    out.push(...g);
+    if (g.length !== 1) continue;
+    const n = g[0];
+    const pitch = n.pitch - 12 >= HAND_RANGE.left.min - 4 ? n.pitch - 12 : n.pitch + 12;
+    out.push({ ...n, pitch, vel: Math.round(n.vel * 0.85) });
+  }
+  return dedupe(out);
 }
 
 /** Sugerencia inicial de manos según el papel de cada pista. */
