@@ -1,11 +1,10 @@
 import { useRef, useState } from "react";
 import type { Song } from "../core/model";
-import { ACCEPTED, importFile } from "../core/importFile";
+import { importFile } from "../core/importFile";
 import { parseAsciiTab } from "../core/importTab";
 import { mergeSongs } from "../core/smart";
 import { barLength } from "../core/tempo";
 import { Segmented } from "./ui";
-import { IOS } from "../lib/platform";
 
 /** Suma otra guitarra, el bajo o un solo (archivo o tab pegada) a la canción abierta. */
 export function AddPart({ song, onAdd }: { song: Song; onAdd: (s: Song) => void }) {
@@ -122,7 +121,6 @@ export function AddPart({ song, onAdd }: { song: Song; onAdd: (s: Song) => void 
             ref={fileRef}
             type="file"
             multiple
-            accept={IOS ? undefined : ACCEPTED}
             className="sr-only"
             aria-label="Archivos de la parte"
             onChange={(e) => {

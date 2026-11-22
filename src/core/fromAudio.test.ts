@@ -36,3 +36,19 @@ describe("de audio a piano", () => {
     expect(song.tracks[2].notes.some((n) => n.pitch === 90)).toBe(false);
   });
 });
+
+import { looksLikeAudio } from "./transcribe";
+describe("reconocer audio por el contenido", () => {
+  const bytes = (s: string, extra: number[] = []) => new Uint8Array([...s].map((c) => c.charCodeAt(0)).concat(extra));
+  it("MP3, WAV, M4A y video", () => {
+    expect(looksLikeAudio(bytes("ID3\u0004\u0000\u0000\u0000\u0000"))).toBe(true);
+    expect(looksLikeAudio(new Uint8Array([0xff, 0xfb, 0x90, 0x64]))).toBe(true);
+    expect(looksLikeAudio(bytes("RIFF\u0000\u0000\u0000\u0000WAVE"))).toBe(true);
+    expect(looksLikeAudio(bytes("\u0000\u0000\u0000 ftypM4A "))).toBe(true);
+  });
+  it("no confunde un Guitar Pro ni un MIDI", () => {
+    expect(looksLikeAudio(bytes("MThd\u0000\u0000\u0000\u0006"))).toBe(false);
+    expect(looksLikeAudio(bytes("\u0018FICHIER GUITAR PRO v5.10"))).toBe(false);
+    expect(looksLikeAudio(bytes("e|---0---3---|"))).toBe(false);
+  });
+});

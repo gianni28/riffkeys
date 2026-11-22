@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import type { Song } from "../core/model";
-import { importFile, ACCEPTED } from "../core/importFile";
+import { importFile } from "../core/importFile";
 import { parseAsciiTab } from "../core/importTab";
 import { combineSongs } from "../core/smart";
-import { isAudioFile, transcribe } from "../core/transcribe";
+import { isAudioFile, looksLikeAudio, transcribe } from "../core/transcribe";
 import { EXAMPLE_TAB } from "../core/example";
 import { deleteSong, listSongs, type LibraryEntry } from "../lib/library";
 import { DemoStage } from "./DemoStage";
 import { SongSearch } from "./SongSearch";
 import { Segmented } from "./ui";
-import { IOS } from "../lib/platform";
 import { UploadIcon } from "./Icons";
 
 const FEATURES: [string, string][] = [
@@ -43,7 +42,7 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
     setBusy(true);
     setError("");
     try {
-      const audio = list.find(isAudioFile);
+      const audio = list.find(isAudioFile) ?? (list.length === 1 && looksLikeAudio(new Uint8Array(await list[0].slice(0, 16).arrayBuffer())) ? list[0] : undefined);
       if (audio) {
         // Una grabación: se escucha y se transcribe (pesa ~2 MB, solo se baja si hace falta).
         setMode("audio");
@@ -56,7 +55,7 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
         } finally {
           void lock?.release();
         }
-      } else onSong(combineSongs(await Promise.all(list.map(importFile))));
+      } else onSong(combineSongs(await Promise.all(list.map((f) => importFile(f)))));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -151,7 +150,6 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
               <input
                 ref={audioRef}
                 type="file"
-                accept="audio/*,video/*"
                 className="sr-only"
                 aria-label="Elegir audio o video"
                 onChange={(e) => {
@@ -182,7 +180,7 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
                 <UploadIcon />
               </span>
               <p className="font-display text-3xl font-black uppercase tracking-wide">Arrastra tu archivo aquí</p>
-              <p className="mt-2 text-sm text-muted">.gp · .gp5 · .gpx · .musicxml · .mxl · .mid · .txt</p>
+              <p className="mt-2 text-sm text-muted">Guitar Pro · MusicXML · MIDI · tab en .txt · audio o video</p>
               <p className="mt-1 text-xs text-muted">¿Tienes cada guitarra en un archivo distinto? Súbelos todos juntos.</p>
               <button type="button" className="btn-primary mt-6" onClick={() => inputRef.current?.click()} disabled={busy}>
                 {busy ? "Leyendo…" : "Elegir archivos"}
@@ -191,8 +189,7 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
                 ref={inputRef}
                 type="file"
                 multiple
-                accept={IOS ? undefined : ACCEPTED}
-                className="sr-only"
+                    className="sr-only"
                 onChange={(e) => {
                   void load(e.target.files);
                   e.target.value = "";
