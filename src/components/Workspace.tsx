@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Hand, Song } from "../core/model";
 import { arrange, suggestHands } from "../core/arrange";
+import { AUTO_ID, suggestWithAuto, withAutoMelody } from "../core/smart";
 import { toMidi } from "../core/exportMidi";
 import { toMusicXml } from "../core/exportMusicXml";
 import { estimateKey, keyName, pitchName } from "../core/key";
@@ -17,7 +18,9 @@ import { Panel, Segmented, Toggle } from "./ui";
 import { DownloadIcon, KeyboardIcon } from "./Icons";
 import { HAND_COLOR } from "../lib/colors";
 import { useMidiInput } from "../lib/useMidiInput";
-import { saveLastSong, useSettings } from "../lib/settings";
+import { useSettings } from "../lib/settings";
+import { saveSong, type LibraryEntry } from "../lib/library";
+import { AddPart } from "./AddPart";
 
 const SheetView = lazy(() => import("./SheetView").then((m) => ({ default: m.SheetView })));
 
@@ -45,10 +48,12 @@ const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "arreglo";
 
-export function Workspace({ song, onClose }: { song: Song; onClose: () => void }) {
+export function Workspace({ entry, onClose }: { entry: LibraryEntry; onClose: () => void }) {
   const [settings, set] = useSettings();
-  const [hands, setHands] = useState<Record<string, Hand>>(() => suggestHands(song));
-  const [transpose, setTranspose] = useState(0);
+  const [raw, setRaw] = useState<Song>(entry.song);
+  const { song, auto } = useMemo(() => withAutoMelody(raw), [raw]);
+  const [hands, setHands] = useState<Record<string, Hand>>(() => entry.hands ?? suggestWithAuto(song, suggestHands));
+  const [transpose, setTranspose] = useState(entry.transpose ?? 0);
   const [view, setView] = useState<"falling" | "sheet">("falling");
   const [side, setSide] = useState<"tracks" | "arrange" | "practice">("tracks");
   const [playing, setPlaying] = useState(false);
@@ -60,7 +65,29 @@ export function Workspace({ song, onClose }: { song: Song; onClose: () => void }
   const player = useMemo(() => new Player(), []);
   const stageRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => saveLastSong(song), [song]);
+  // Guarda la canción, el reparto y la transposición en «Mis canciones».
+  useEffect(() => {
+    const id = window.setTimeout(() => void saveSong({ ...entry, song: raw, hands, transpose, opened: Date.now() }), 400);
+    return () => clearTimeout(id);
+  }, [entry, raw, hands, transpose]);
+
+  /** Añade o quita partes y reparte las nuevas sin tocar lo que ya elegiste. */
+  const changeSong = useCallback(
+    (next: Song) => {
+      const { song: withAuto } = withAutoMelody(next);
+      const suggested = suggestWithAuto(withAuto, suggestHands);
+      const hadAuto = song.tracks.some((t) => t.id === AUTO_ID);
+      const hasAuto = withAuto.tracks.some((t) => t.id === AUTO_ID);
+      setHands((prev) => {
+        if (hasAuto && !hadAuto) return suggested;
+        const out: Record<string, Hand> = {};
+        for (const t of withAuto.tracks) out[t.id] = prev[t.id] ?? suggested[t.id] ?? "off";
+        return out;
+      });
+      setRaw(next);
+    },
+    [song],
+  );
 
   const arrangement = useMemo(
     () => arrange(song, hands, { transpose, maxNotesPerHand: settings.maxNotes, leftOctaves: settings.leftOctaves, simplify: settings.simplify }),
@@ -374,22 +401,48 @@ export function Workspace({ song, onClose }: { song: Song; onClose: () => void }
                 <>
                   <p className="text-xs leading-relaxed text-muted">
                     Elige qué toca cada mano. «Dividir» manda los graves a la izquierda y el resto a la derecha. Riffkeys ajusta la octava para que todo quepa.
+                    {auto && " La melodía automática ya junta la voz y las guitarras: normalmente basta con ella y el bajo."}
                   </p>
                   <ul className="-mt-2 space-y-2">
                     {song.tracks.map((t) => {
                       const pitches = t.notes.map((n) => n.pitch);
                       const range = t.isPercussion || !pitches.length ? "Percusión" : `${pitchName(Math.min(...pitches))}–${pitchName(Math.max(...pitches))}`;
                       return (
-                        <li key={t.id} className="rounded-xl border border-line bg-stage p-3">
+                        <li key={t.id} className={`rounded-xl border bg-stage p-3 ${t.id === AUTO_ID ? "border-gold/40" : "border-line"}`}>
                           <div className="flex items-baseline justify-between gap-2">
                             <p className="truncate font-semibold" title={t.name}>
+                              {t.id === AUTO_ID && <span aria-hidden="true">✦ </span>}
                               {t.name}
                             </p>
-                            <span className="shrink-0 text-xs text-muted">{ROLE_LABEL[t.role]}</span>
+                            <span className="flex shrink-0 items-center gap-1 text-xs text-muted">
+                              {t.id === AUTO_ID ? "Voz + guitarras" : ROLE_LABEL[t.role]}
+                              {t.id !== AUTO_ID && raw.tracks.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="-my-1 ml-1 grid h-6 w-6 place-items-center rounded text-base leading-none hover:bg-raised hover:text-ink"
+                                  aria-label={`Quitar la pista ${t.name}`}
+                                  title="Quitar pista"
+                                  onClick={() => changeSong({ ...raw, tracks: raw.tracks.filter((x) => x.id !== t.id) })}
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </span>
                           </div>
-                          <p className="num text-xs text-muted">
-                            {t.notes.length} notas · {range}
-                          </p>
+                          {t.id === AUTO_ID && auto ? (
+                            <p className="mt-1 text-xs leading-snug text-muted">
+                              Junta lo que se oye arriba, compás por compás:{" "}
+                              {auto.sources
+                                .slice(0, 4)
+                                .map((x) => `${x.name} (${x.bars} c.)`)
+                                .join(", ")}
+                              {auto.sources.length > 4 ? "…" : "."}
+                            </p>
+                          ) : (
+                            <p className="num text-xs text-muted">
+                              {t.notes.length} notas · {range}
+                            </p>
+                          )}
                           {t.isPercussion ? (
                             <p className="mt-2 text-xs text-muted">La batería no se toca en el piano.</p>
                           ) : (
@@ -399,6 +452,7 @@ export function Workspace({ song, onClose }: { song: Song; onClose: () => void }
                       );
                     })}
                   </ul>
+                  <AddPart song={raw} onAdd={changeSong} />
                 </>
               )}
 

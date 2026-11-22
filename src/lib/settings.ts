@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import type { Song } from "../core/model";
 
 /** Ajustes que se recuerdan entre visitas (en este navegador). */
 export interface Settings {
@@ -33,7 +32,6 @@ export const DEFAULTS: Settings = {
 };
 
 const KEY = "riffkeys:ajustes";
-const SONG_KEY = "riffkeys:ultima-cancion";
 
 function read<T>(key: string): T | null {
   try {
@@ -57,22 +55,4 @@ export function useSettings() {
   useEffect(() => write(KEY, settings), [settings]);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setSettings((s) => ({ ...s, [k]: v }));
   return [settings, set] as const;
-}
-
-/** La última canción abierta, para retomarla al volver. */
-export function saveLastSong(song: Song) {
-  write(SONG_KEY, song);
-}
-
-export function loadLastSong(): Song | null {
-  const s = read<Song>(SONG_KEY);
-  return s && Array.isArray(s.tracks) && Array.isArray(s.tempos) ? s : null;
-}
-
-export function forgetLastSong() {
-  try {
-    localStorage.removeItem(SONG_KEY);
-  } catch {
-    /* nada */
-  }
 }
