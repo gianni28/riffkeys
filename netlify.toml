@@ -14,3 +14,16 @@
   for = "/piano/*"
   [headers.values]
     Cache-Control = "public, max-age=2592000"
+
+# Aislamiento entre orígenes: permite que la IA use varios hilos (SharedArrayBuffer).
+# Todo lo que carga la página es del mismo dominio, así que no rompe nada.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+
+[[headers]]
+  for = "/models/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
