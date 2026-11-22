@@ -3,6 +3,7 @@ import type { Song } from "../core/model";
 import { importFile, ACCEPTED } from "../core/importFile";
 import { parseAsciiTab } from "../core/importTab";
 import { combineSongs } from "../core/smart";
+import { isAudioFile, transcribe } from "../core/transcribe";
 import { EXAMPLE_TAB } from "../core/example";
 import { deleteSong, listSongs, type LibraryEntry } from "../lib/library";
 import { DemoStage } from "./DemoStage";
@@ -12,14 +13,16 @@ import { IOS } from "../lib/platform";
 import { UploadIcon } from "./Icons";
 
 const FEATURES: [string, string][] = [
-  ["Melodía automática", "Junta sola la voz y las guitarras: canta cuando hay letra y toma el riff o el solo cuando no. Con guitarras gemelas, las dos."],
+  ["De audio a piano", "Sube una grabación y Riffkeys la escucha: melodía a la derecha, bajo a la izquierda. Sin salir de tu dispositivo."],
+  ["Melodía automática", "Con varias guitarras y voz, junta sola lo que se oye arriba: la voz al cantar, el riff o el solo cuando no."],
   ["Suena a piano de verdad", "Un piano de cola sampleado con tres capas de intensidad y reverberación de sala."],
   ["Practica con tu teclado", "Conéctalo por USB: aciertos y fallos en tiempo real, modo «esperarme» y bucles que suben el tempo solos."],
-  ["Llévalo a MuseScore", "Partitura con armadura estimada, imprimible, y exportación a MIDI y MusicXML."],
 ];
 
 export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; onOpen: (e: LibraryEntry) => void }) {
-  const [mode, setMode] = useState<"file" | "paste">("file");
+  const [mode, setMode] = useState<"file" | "paste" | "audio">("file");
+  const [progress, setProgress] = useState<{ p: number; stage: string } | null>(null);
+  const audioRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -40,11 +43,25 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
     setBusy(true);
     setError("");
     try {
-      onSong(combineSongs(await Promise.all(list.map(importFile))));
+      const audio = list.find(isAudioFile);
+      if (audio) {
+        // Una grabación: se escucha y se transcribe (pesa ~2 MB, solo se baja si hace falta).
+        setMode("audio");
+        // Que el celular no se duerma mientras escucha la canción.
+        const lock = await (navigator as Navigator & { wakeLock?: { request(t: "screen"): Promise<{ release(): Promise<void> }> } }).wakeLock
+          ?.request("screen")
+          .catch(() => undefined);
+        try {
+          onSong(await transcribe(audio, (p, stage) => setProgress({ p, stage })));
+        } finally {
+          void lock?.release();
+        }
+      } else onSong(combineSongs(await Promise.all(list.map(importFile))));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -72,13 +89,13 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
             <span className="bg-gradient-to-r from-lh via-bone to-rh bg-clip-text text-transparent">al piano.</span>
           </h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted">
-            Sube una canción en Guitar Pro, MusicXML o MIDI, o pega una tablatura. Riffkeys reparte las guitarras, el bajo y la voz entre tus dos manos, la toca con un
+            Pega una tablatura, sube un Guitar Pro, MIDI o MusicXML, o directamente una grabación. Riffkeys reparte las guitarras, el bajo y la voz entre tus dos manos, la toca con un
             piano de cola y te deja practicarla nota por nota.
           </p>
           <ol className="mt-8 hidden max-w-lg gap-3 sm:grid">
             {[
-              ["Búscala", "Escribe el nombre y Riffkeys te lleva directo a sus archivos Guitar Pro."],
-              ["Súbela tal cual", "Trae todas las guitarras, el bajo y la voz: la melodía y el bajo se arman solos. Igual puedes cambiar qué toca cada mano."],
+              ["Búscala", "Escribe el nombre y Riffkeys te abre sus tabs gratis para copiar y pegar."],
+              ["O súbela en audio", "Un MP3 o un video: Riffkeys la escucha y saca la melodía y el bajo."],
               ["Practica o exporta", "Con tu teclado MIDI, en bucle y a tu velocidad, o ábrelo en MuseScore."],
             ].map(([t, d], i) => (
               <li key={t} className="flex gap-4">
@@ -103,12 +120,51 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
               setError("");
             }}
             options={[
-              ["file", "Subir archivo"],
-              ["paste", "Pegar tablatura"],
+              ["file", "Archivo"],
+              ["paste", "Pegar tab"],
+              ["audio", "Desde audio"],
             ]}
           />
 
-          {mode === "file" ? (
+          {mode === "audio" ? (
+            <div className="mt-4 rounded-xl border-2 border-dashed border-line px-5 py-10 text-center">
+              <p className="font-display text-3xl font-black uppercase tracking-wide">De una grabación al piano</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
+                Sube un audio o un video (MP3, M4A, WAV, MP4…). Riffkeys lo escucha y saca la melodía para la derecha y el bajo para la izquierda. Todo pasa en tu
+                dispositivo.
+              </p>
+              {progress ? (
+                <div className="mx-auto mt-6 max-w-xs" aria-live="polite">
+                  <div className="h-2 overflow-hidden rounded-full bg-line">
+                    <div className="h-full bg-gradient-to-r from-lh to-rh transition-[width]" style={{ width: `${Math.round(progress.p * 100)}%` }} />
+                  </div>
+                  <p className="mt-2 text-sm">
+                    {progress.stage}… <span className="num text-muted">{Math.round(progress.p * 100)} %</span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted">Una canción entera puede tardar un par de minutos. No cierres la página.</p>
+                </div>
+              ) : (
+                <button type="button" className="btn-primary mt-6" onClick={() => audioRef.current?.click()} disabled={busy}>
+                  Elegir audio o video
+                </button>
+              )}
+              <input
+                ref={audioRef}
+                type="file"
+                accept="audio/*,video/*"
+                className="sr-only"
+                aria-label="Elegir audio o video"
+                onChange={(e) => {
+                  void load(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <p className="mx-auto mt-5 max-w-sm text-xs leading-relaxed text-muted">
+                Sale mejor con piano, voz o guitarra limpia. En metal con todo distorsionado sale más aproximado: la melodía suele quedar bien y el resto lo
+                ajustas en «Notas por mano».
+              </p>
+            </div>
+          ) : mode === "file" ? (
             <div
               onDragOver={(e) => {
                 e.preventDefault();

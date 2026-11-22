@@ -91,9 +91,9 @@ describe("juntar partes", () => {
 
 import { searchLinks } from "../lib/platform";
 describe("búsqueda", () => {
-  it("arma los enlaces filtrados por Guitar Pro", () => {
+  it("arma los enlaces a tabs gratis", () => {
     const l = searchLinks(" Iron Maiden The Wicker Man ");
-    expect(l.guitarPro).toBe("https://www.ultimate-guitar.com/search.php?search_type=title&value=Iron%20Maiden%20The%20Wicker%20Man&type=500");
-    expect(l.songsterr).toContain("pattern=Iron%20Maiden");
+    expect(l.tabs).toBe("https://www.ultimate-guitar.com/search.php?search_type=title&value=Iron%20Maiden%20The%20Wicker%20Man&type=200");
+    expect(l.youtube).toContain("Wicker%20Man%20piano");
   });
 });

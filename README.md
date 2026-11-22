@@ -9,7 +9,8 @@ Nació de una necesidad concreta: tocar metal en piano implica pasar a mano tabs
 - **Importa** Guitar Pro (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`), MusicXML (`.xml`, `.musicxml`, `.mxl`), MIDI (`.mid`) y tablaturas en texto pegadas o en `.txt`.
 - **Sugiere un reparto**: voz y melodías a la mano derecha, bajo a la izquierda, batería fuera. Con una sola pista de guitarra, «Dividir» manda los graves a la izquierda y el resto a la derecha.
 - **Adapta al piano**: mueve cada pista de octava para que caiga en el registro de su mano, une notas dobladas y reduce acordes a lo que una mano alcanza (número de notas y abertura configurables).
-- **Buscador**: escribes la canción y te abre sus archivos Guitar Pro en Ultimate Guitar (o la ves en Songsterr).
+- **Buscador**: escribes la canción y te abre sus tabs gratis (en texto) de Ultimate Guitar para copiarlas y pegarlas.
+- **De audio a piano**: subes un audio o un video (MP3, M4A, WAV, MP4…) y Riffkeys lo transcribe en el navegador con [Basic Pitch](https://github.com/spotify/basic-pitch-ts) (Spotify, Apache-2.0). Saca tres pistas: la melodía (lo más agudo en cada ataque), el bajo (lo más grave) y todo lo detectado; el tempo se estima de los ataques. El audio nunca sale del dispositivo.
 - **Melodía automática**: una pista virtual que junta, compás por compás, lo que se oye arriba: la voz cuando hay letra y la guitarra que lleva la melodía en intros, puentes y solos. Si dos guitarras van armonizadas (Iron Maiden), toma las dos; las rítmicas con power chords quedan fuera. Va a la mano derecha y el bajo a la izquierda sin tocar nada.
 - **Juntar partes**: sube varios archivos a la vez (una tab por guitarra) o añade otra parte a la canción abierta, pegando una tab o con un archivo, desde el compás que quieras.
 - **Mis canciones**: todo lo que subes queda guardado en el navegador con el reparto y la transposición que dejaste.
@@ -73,5 +74,6 @@ Las pruebas usan archivos reales de Guitar Pro y MusicXML (`test-data/`) y verif
 
 - Lectura de Guitar Pro y MusicXML y dibujo de partituras: [alphaTab](https://github.com/CoderLine/alphaTab) (MPL-2.0).
 - Lectura y escritura de MIDI: [@tonejs/midi](https://github.com/Tonejs/Midi) (MIT).
+- Transcripción de audio: [Basic Pitch](https://github.com/spotify/basic-pitch-ts) de Spotify (Apache-2.0); el modelo está en `public/basic-pitch/`.
 - Muestras de piano: [Salamander Grand Piano V3](https://archive.org/details/SalamanderGrandPianoV3) de Alexander Holm (CC BY 3.0), vía [@audio-samples/piano-mp3](https://github.com/darosh/samples-piano-mp3).
 - Código: MIT © Giovanni Raffa.

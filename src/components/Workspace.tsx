@@ -24,7 +24,7 @@ import { AddPart } from "./AddPart";
 
 const SheetView = lazy(() => import("./SheetView").then((m) => ({ default: m.SheetView })));
 
-const SOURCE_LABEL: Record<Song["source"], string> = { "guitar-pro": "Guitar Pro", musicxml: "MusicXML", midi: "MIDI", tab: "Tablatura" };
+const SOURCE_LABEL: Record<Song["source"], string> = { "guitar-pro": "Guitar Pro", musicxml: "MusicXML", midi: "MIDI", tab: "Tablatura", audio: "Sacada del audio" };
 type Practice = "none" | "left" | "right" | "both";
 const PRACTICE_HANDS: Record<Practice, HandId[]> = { none: [], left: ["left"], right: ["right"], both: ["left", "right"] };
 
