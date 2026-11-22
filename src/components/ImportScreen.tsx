@@ -4,11 +4,12 @@ import { importFile } from "../core/importFile";
 import { parseAsciiTab } from "../core/importTab";
 import { combineSongs } from "../core/smart";
 import { isAudioFile, looksLikeAudio, transcribe } from "../core/transcribe";
+import { aiRecommended } from "../core/cover/separate";
 import { EXAMPLE_TAB } from "../core/example";
 import { deleteSong, listSongs, type LibraryEntry } from "../lib/library";
 import { DemoStage } from "./DemoStage";
 import { SongSearch } from "./SongSearch";
-import { Segmented } from "./ui";
+import { Segmented, Toggle } from "./ui";
 import { UploadIcon } from "./Icons";
 
 const FEATURES: [string, string][] = [
@@ -21,6 +22,7 @@ const FEATURES: [string, string][] = [
 export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; onOpen: (e: LibraryEntry) => void }) {
   const [mode, setMode] = useState<"file" | "paste" | "audio">("file");
   const [progress, setProgress] = useState<{ p: number; stage: string } | null>(null);
+  const [ai, setAi] = useState(() => aiRecommended());
   const audioRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -51,7 +53,7 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
           ?.request("screen")
           .catch(() => undefined);
         try {
-          onSong(await transcribe(audio, (p, stage) => setProgress({ p, stage })));
+          onSong(await transcribe(audio, (p, stage) => setProgress({ p, stage }), { ai }));
         } finally {
           void lock?.release();
         }
@@ -129,9 +131,18 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
             <div className="mt-4 rounded-xl border-2 border-dashed border-line px-5 py-10 text-center">
               <p className="font-display text-3xl font-black uppercase tracking-wide">De una grabación al piano</p>
               <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
-                Sube un audio o un video (MP3, M4A, WAV, MP4…). Riffkeys lo escucha y saca la melodía para la derecha y el bajo para la izquierda. Todo pasa en tu
-                dispositivo.
+                Sube un audio o un video (MP3, M4A, WAV, MP4…). Riffkeys separa la voz, el bajo y las guitarras, sigue el pulso, saca los acordes y arma el cover: melodía a
+                la derecha y acompañamiento a la izquierda, a tempo. Todo pasa en tu dispositivo.
               </p>
+              <div className="mx-auto mt-4 max-w-sm text-left">
+                <Toggle
+                  checked={ai}
+                  onChange={setAi}
+                  disabled={busy}
+                  label="Aislar la voz con IA (mucho mejor melodía)"
+                  hint="Descarga ~67 MB la primera vez. En computador tarda unos minutos; en celular puede tardar bastante más. Sin IA es rápido, pero la melodía sale peor."
+                />
+              </div>
               {progress ? (
                 <div className="mx-auto mt-6 max-w-xs" aria-live="polite">
                   <div className="h-2 overflow-hidden rounded-full bg-line">
@@ -158,8 +169,8 @@ export function ImportScreen({ onSong, onOpen }: { onSong: (s: Song) => void; on
                 }}
               />
               <p className="mx-auto mt-5 max-w-sm text-xs leading-relaxed text-muted">
-                Sale mejor con piano, voz o guitarra limpia. En metal con todo distorsionado sale más aproximado: la melodía suele quedar bien y el resto lo
-                ajustas en «Notas por mano».
+                Una canción entera tarda unos minutos. Al terminar puedes cambiar qué toca cada mano: hay pistas con la voz sola, la guitarra principal, el bajo
+                de la grabación y acordes para la derecha.
               </p>
             </div>
           ) : mode === "file" ? (

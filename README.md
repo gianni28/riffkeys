@@ -10,7 +10,13 @@ Nació de una necesidad concreta: tocar metal en piano implica pasar a mano tabs
 - **Sugiere un reparto**: voz y melodías a la mano derecha, bajo a la izquierda, batería fuera. Con una sola pista de guitarra, «Dividir» manda los graves a la izquierda y el resto a la derecha.
 - **Adapta al piano**: mueve cada pista de octava para que caiga en el registro de su mano, une notas dobladas y reduce acordes a lo que una mano alcanza (número de notas y abertura configurables).
 - **Buscador**: escribes la canción y te abre sus tabs gratis (en texto) de Ultimate Guitar para copiarlas y pegarlas.
-- **De audio a piano**: subes un audio o un video (MP3, M4A, WAV, MP4…) y Riffkeys lo transcribe en el navegador con [Basic Pitch](https://github.com/spotify/basic-pitch-ts) (Spotify, Apache-2.0). Saca tres pistas: la melodía (lo más agudo en cada ataque), el bajo (lo más grave) y todo lo detectado; el tempo se estima de los ataques. El audio nunca sale del dispositivo.
+- **De audio a piano**: subes un audio o un video (MP3, M4A, WAV, MP4…) y Riffkeys arma un cover, todo en el navegador:
+  1. **Aísla la voz con IA** (MDX-Net «Kim Vocal 2», de los modelos públicos de Ultimate Vocal Remover) con ONNX Runtime Web: WebGPU si hay, si no WebAssembly en varios hilos. El modelo (~67 MB) se descarga una vez y queda en caché.
+  2. Separa el resto por DSP: armónico/percusivo (HPSS, Fitzgerald 2010) y centro/lados del estéreo → bajo, guitarras y batería.
+  3. **Sigue el pulso real** (flujo espectral + programación dinámica, Ellis 2007) y encuentra el «1» del compás.
+  4. **Saca los acordes** pulso a pulso (croma con FFT larga, plantillas mayor/menor con el bajo y la tonalidad, suavizado Viterbi).
+  5. Transcribe la voz, la guitarra principal y el bajo con [Basic Pitch](https://github.com/spotify/basic-pitch-ts) y cuantiza todo a la rejilla de pulsos.
+  6. Arma el cover: melodía (la voz cuando canta, la guitarra en intros y solos) a la derecha y octavas siguiendo los acordes a la izquierda, con el tempo de la grabación. También quedan pistas con la voz sola, la guitarra, el bajo real y acordes para la derecha.
 - **Melodía automática**: una pista virtual que junta, compás por compás, lo que se oye arriba: la voz cuando hay letra y la guitarra que lleva la melodía en intros, puentes y solos. Si dos guitarras van armonizadas (Iron Maiden), toma las dos; las rítmicas con power chords quedan fuera. Va a la mano derecha y el bajo a la izquierda sin tocar nada.
 - **Juntar partes**: sube varios archivos a la vez (una tab por guitarra) o añade otra parte a la canción abierta, pegando una tab o con un archivo, desde el compás que quieras.
 - **Mis canciones**: todo lo que subes queda guardado en el navegador con el reparto y la transposición que dejaste.
@@ -74,6 +80,7 @@ Las pruebas usan archivos reales de Guitar Pro y MusicXML (`test-data/`) y verif
 
 - Lectura de Guitar Pro y MusicXML y dibujo de partituras: [alphaTab](https://github.com/CoderLine/alphaTab) (MPL-2.0).
 - Lectura y escritura de MIDI: [@tonejs/midi](https://github.com/Tonejs/Midi) (MIT).
+- Separación de voz: modelo MDX-Net «Kim Vocal 2» de la comunidad de [Ultimate Vocal Remover](https://github.com/Anjok07/ultimatevocalremovergui) (se descarga en el build desde sus releases públicas; no se guarda en este repo).
 - Transcripción de audio: [Basic Pitch](https://github.com/spotify/basic-pitch-ts) de Spotify (Apache-2.0); el modelo está en `public/basic-pitch/`.
 - Muestras de piano: [Salamander Grand Piano V3](https://archive.org/details/SalamanderGrandPianoV3) de Alexander Holm (CC BY 3.0), vía [@audio-samples/piano-mp3](https://github.com/darosh/samples-piano-mp3).
 - Código: MIT © Giovanni Raffa.
