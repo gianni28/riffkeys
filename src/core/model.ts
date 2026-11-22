@@ -42,7 +42,7 @@ export interface Song {
   timeSignature: [number, number];
   tracks: Track[];
   /** Formato del que vino, para mostrarlo en la interfaz. */
-  source: "guitar-pro" | "musicxml" | "midi" | "tab";
+  source: "guitar-pro" | "musicxml" | "midi" | "tab" | "audio";
 }
 
 /** "split" reparte una sola pista: los graves a la izquierda y el resto a la derecha. */

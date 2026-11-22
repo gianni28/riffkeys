@@ -157,7 +157,8 @@ export function autoMelody(song: Song): AutoMelody | null {
 /** Añade (o recalcula) la melodía automática al principio de la lista de pistas. */
 export function withAutoMelody(song: Song): { song: Song; auto: AutoMelody | null } {
   const base = { ...song, tracks: song.tracks.filter((t) => t.id !== AUTO_ID) };
-  const auto = autoMelody(base);
+  // Lo sacado de un audio ya trae su propia melodía.
+  const auto = base.source === "audio" ? null : autoMelody(base);
   return { song: auto ? { ...base, tracks: [auto.track, ...base.tracks] } : base, auto };
 }
 

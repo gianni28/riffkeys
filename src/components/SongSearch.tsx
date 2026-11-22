@@ -10,7 +10,7 @@ export function SongSearch() {
       className="rounded-xl border border-line bg-stage p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (ready) window.open(links.guitarPro, "_blank", "noopener");
+        if (ready) window.open(links.tabs, "_blank", "noopener");
       }}
       role="search"
     >
@@ -29,27 +29,28 @@ export function SongSearch() {
           enterKeyHint="search"
         />
         <button type="submit" className="btn-primary shrink-0" disabled={!ready}>
-          Buscar
+          Buscar tabs
         </button>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted">
-        Te abre los archivos <strong className="text-ink">Guitar Pro</strong> de esa canción en Ultimate Guitar. Descarga uno y súbelo aquí abajo: trae todas las guitarras, el bajo y la voz, y
-        Riffkeys arma solo la melodía y el bajo.
-        {ready && (
-          <>
-            {" "}
-            También puedes verla en{" "}
-            <a className="font-semibold text-ink underline decoration-line underline-offset-2 hover:decoration-bone" href={links.songsterr} target="_blank" rel="noreferrer">
-              Songsterr
-            </a>{" "}
-            o buscar un{" "}
-            <a className="font-semibold text-ink underline decoration-line underline-offset-2 hover:decoration-bone" href={links.youtube} target="_blank" rel="noreferrer">
-              tutorial en YouTube
-            </a>
-            .
-          </>
-        )}
-      </p>
+      <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-xs leading-relaxed text-muted">
+        <li>Te abre las tabs gratis de Ultimate Guitar. Elige una y copia el texto de la tab.</li>
+        <li>
+          Pégalo en <strong className="text-ink">«Pegar tablatura»</strong>, aquí abajo. ¿Otra guitarra? Dentro de la canción, <strong className="text-ink">«+ Añadir otra parte»</strong>.
+        </li>
+        <li>
+          ¿Tienes la canción en audio o video? Súbela en <strong className="text-ink">«Desde audio»</strong> y Riffkeys saca el piano.
+          {ready && (
+            <>
+              {" "}
+              O mira un{" "}
+              <a className="font-semibold text-ink underline decoration-line underline-offset-2 hover:decoration-bone" href={links.youtube} target="_blank" rel="noreferrer">
+                tutorial en YouTube
+              </a>
+              .
+            </>
+          )}
+        </li>
+      </ol>
     </form>
   );
 }
